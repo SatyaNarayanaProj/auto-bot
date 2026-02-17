@@ -28,18 +28,28 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
 
-      - name: Send success email
-        if: success()
+      - name: Send email with screenshot
+        if: always()
         run: |
           python - <<EOF
           import smtplib, os
-          from email.mime.text import MIMEText
+          from email.message import EmailMessage
 
-          msg = MIMEText("Attendance marked successfully ✅")
-          msg["Subject"] = "Attendance Bot Success"
+          status = "${{ job.status }}"
 
+          msg = EmailMessage()
+          msg["Subject"] = f"Attendance Bot {status.upper()}"
           msg["From"] = os.environ["EMAIL_USER"]
           msg["To"] = os.environ["RECEIVER_EMAIL"]
+          msg.set_content(f"Bot finished with status: {status}")
+
+          with open("screenshot.png", "rb") as f:
+              msg.add_attachment(
+                  f.read(),
+                  maintype="image",
+                  subtype="png",
+                  filename="attendance.png"
+              )
 
           server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
           server.login(os.environ["EMAIL_USER"], os.environ["EMAIL_PASS"])
