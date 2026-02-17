@@ -2,9 +2,7 @@ from playwright.sync_api import sync_playwright
 import os
 import re
 
-
-
-URL = "https://hrms-420.netlify.app"
+URL = "https://hrms.app"
 
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
@@ -17,11 +15,9 @@ LOGIN_BTN = 'button[type="submit"]'
 def run():
 
     if not EMAIL or not PASSWORD:
-        raise ValueError("EMAIL or PASSWORD secret missing")
+        raise ValueError("Missing EMAIL or PASSWORD secrets")
 
     with sync_playwright() as p:
-
-        print("Launching browser...")
 
         browser = p.chromium.launch(
             headless=True,
@@ -30,42 +26,48 @@ def run():
 
         page = browser.new_page()
 
+        try:
+            print("Opening site...")
+            page.goto(URL, wait_until="domcontentloaded")
 
-        print("Opening site...")
-        page.goto(URL, wait_until="domcontentloaded")
+            print("Waiting login form...")
+            page.wait_for_selector(EMAIL_SELECTOR, timeout=60000)
 
+            page.fill(EMAIL_SELECTOR, EMAIL)
+            page.fill(PASS_SELECTOR, PASSWORD)
+            page.click(LOGIN_BTN)
 
-        print("Waiting for login form...")
-        page.wait_for_selector(EMAIL_SELECTOR, timeout=60000)
+            print("Waiting punch button...")
 
-        print("Entering credentials...")
-        page.fill(EMAIL_SELECTOR, EMAIL)
-        page.fill(PASS_SELECTOR, PASSWORD)
+            punch_btn = page.get_by_role(
+                "button",
+                name=re.compile(r"Punch (In|Out)", re.IGNORECASE)
+            )
 
-        print("Submitting login...")
-        page.click(LOGIN_BTN)
+            punch_btn.wait_for(timeout=60000)
 
-        print("Waiting for Punch button...")
+            label = punch_btn.inner_text()
+            print("Detected:", label)
 
-        punch_btn = page.get_by_role(
-            "button",
-            name=re.compile(r"Punch (In|Out)", re.IGNORECASE)
-        )
+            punch_btn.click()
 
-        punch_btn.wait_for(state="visible", timeout=60000)
+            page.wait_for_timeout(3000)
 
-        label = punch_btn.inner_text()
-        print("Detected button:", label)
+            # success screenshot
+            page.screenshot(path="screenshot.png", full_page=True)
 
+            print("Attendance marked ✓")
 
-        print("Clicking attendance button...")
-        punch_btn.click()
+        except Exception as e:
+            print("ERROR:", e)
 
-        page.wait_for_timeout(3000)
+            # failure screenshot
+            page.screenshot(path="screenshot.png", full_page=True)
 
-        print("Attendance marked successfully ✓")
+            raise e
 
-        browser.close()
+        finally:
+            browser.close()
 
 
 if __name__ == "__main__":
