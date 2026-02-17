@@ -51,7 +51,7 @@ def run():
 
             punch_btn.click()
 
-            page.wait_for_timeout(3000)
+            page.wait_for_timeout(120000)
 
             # success screenshot
             page.screenshot(path="screenshot.png", full_page=True)
@@ -72,4 +72,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
 
