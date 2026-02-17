@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 import os
 import re
 
-URL = "https://hrms.app"
+URL = "https://hrms-420.netlify.app/"
 
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
@@ -72,3 +72,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+
