@@ -2,8 +2,8 @@ name: Attendance Bot
 
 on:
   schedule:
-    - cron: "30 4 * * *"
-    - cron: "30 12 * * *"
+    - cron: "50 4 * * 1-5"
+    - cron: "50 12 * * 1-5"
   workflow_dispatch:
 
 jobs:
@@ -17,10 +17,36 @@ jobs:
         with:
           python-version: "3.11"
 
-      - run: |
+      - name: Install dependencies
+        run: |
           pip install -r requirements.txt
           playwright install --with-deps
 
-      - run: python newthing.py
+      - name: Run bot
+        run: python newthing.py
+        env:
+          EMAIL: ${{ secrets.EMAIL }}
+          PASSWORD: ${{ secrets.PASSWORD }}
 
+      - name: Send success email
+        if: success()
+        run: |
+          python - <<EOF
+          import smtplib, os
+          from email.mime.text import MIMEText
 
+          msg = MIMEText("Attendance marked successfully ✅")
+          msg["Subject"] = "Attendance Bot Success"
+
+          msg["From"] = os.environ["EMAIL_USER"]
+          msg["To"] = os.environ["RECEIVER_EMAIL"]
+
+          server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+          server.login(os.environ["EMAIL_USER"], os.environ["EMAIL_PASS"])
+          server.send_message(msg)
+          server.quit()
+          EOF
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
